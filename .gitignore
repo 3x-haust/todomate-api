@@ -1,0 +1,11 @@
+.env
+.env.*
+!.env.example
+.DS_Store
+node_modules/
+coverage/
+dist/
+evidence/
+work/
+.omo/
+*.log

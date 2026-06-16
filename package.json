@@ -1,0 +1,51 @@
+{
+  "name": "todomate-api",
+  "version": "0.1.0",
+  "description": "Unofficial multi-user API wrapper for Todomate web Firebase endpoints.",
+  "type": "module",
+  "private": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/3x-haust/todomate-api.git"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "bun run src/server.ts",
+    "start": "node dist/main.js",
+    "start:bun": "bun run src/server.ts",
+    "start:prod": "node dist/main.js",
+    "test": "bun test",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "smoke:live": "bun run scripts/live-smoke.ts"
+  },
+  "keywords": [
+    "todomate",
+    "firebase",
+    "api",
+    "hono",
+    "nestjs"
+  ],
+  "license": "MIT",
+  "engines": {
+    "bun": ">=1.3.0",
+    "node": ">=22.0.0"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/platform-express": "^11.1.27",
+    "hono": "^4.12.25",
+    "ky": "^2.0.2",
+    "reflect-metadata": "^0.2.2",
+    "rxjs": "^7.8.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.0",
+    "@types/bun": "^1.3.14",
+    "@types/node": "^25.9.3",
+    "typescript": "^6.0.3"
+  }
+}
