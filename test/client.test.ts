@@ -193,6 +193,51 @@ describe("TodomateClient", () => {
     expect(JSON.stringify(transport.requests[1]?.json)).toContain("1781654400000");
   });
 
+  test("finds visible user todos by exact display name", async () => {
+    const transport = createFakeTransport([
+      {
+        match: { method: "POST", urlIncludes: "accounts:signInWithPassword" },
+        body: {
+          localId: "uid-1",
+          idToken: "token-1",
+          refreshToken: "refresh-1",
+          expiresIn: "3600",
+        },
+      },
+      {
+        match: { method: "POST", urlIncludes: "/documents:runQuery" },
+        body: [
+          {
+            document: {
+              name: "projects/mate-914f3/databases/(default)/documents/User/friend-1",
+              fields: {
+                id: { stringValue: "friend-1" },
+                name: { stringValue: "효타카토" },
+              },
+            },
+          },
+        ],
+      },
+      {
+        match: { method: "POST", urlIncludes: "/documents:runQuery" },
+        body: [],
+      },
+    ]);
+    const client = new TodomateClient({
+      credentials: { email: "user@example.com", password: "secret" },
+      firebaseApiKey: testFirebaseApiKey,
+      transport,
+    });
+
+    await expect(client.userTodosByName("효타카토", 20260617)).resolves.toEqual([
+      { todos: [], user: { id: "friend-1", name: "효타카토" } },
+    ]);
+
+    expect(JSON.stringify(transport.requests[1]?.json)).toContain("효타카토");
+    expect(JSON.stringify(transport.requests[2]?.json)).toContain("friend-1");
+    expect(JSON.stringify(transport.requests[2]?.json)).toContain("1781654400000");
+  });
+
   test("updates editable todo fields with Todomate date conversion", async () => {
     const transport = createFakeTransport([
       {

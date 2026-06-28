@@ -30,7 +30,10 @@ If `TODOMATE_API_TOKEN` is missing, ask the user for an existing session token. 
 - `GET /me`
 - `GET /goals`
 - `GET /todos?date=YYYYMMDD`
+- `GET /users/:userId/todos?date=YYYYMMDD`
+- `GET /users/by-name/:name/todos?date=YYYYMMDD`
 - `POST /todos`
+- `PATCH /todos/:id`
 - `PATCH /todos/:id/complete`
 - `DELETE /todos/:id`
 - `GET /reminders`

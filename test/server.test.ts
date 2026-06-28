@@ -36,6 +36,12 @@ const fakeClient: TodomateApi = {
     ...(input.remindAt !== undefined ? { remindAt: input.remindAt } : {}),
   }),
   userTodos: async (userId, date) => [{ date, id: "friend-todo-1", writerID: userId }],
+  userTodosByName: async (name, date) => [
+    {
+      todos: [{ date, id: "friend-todo-1", writerID: "friend-1" }],
+      user: { id: "friend-1", name },
+    },
+  ],
 };
 
 describe("HTTP API", () => {
@@ -95,6 +101,22 @@ describe("HTTP API", () => {
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual([
       { date: 20260617, id: "friend-todo-1", writerID: "friend-1" },
+    ]);
+  });
+
+  test("reads visible user todos by name through the injected client", async () => {
+    const app = createApp({ client: fakeClient });
+
+    const response = await app.request(
+      `/users/by-name/${encodeURIComponent("효타카토")}/todos?date=20260617`,
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      {
+        todos: [{ date: 20260617, id: "friend-todo-1", writerID: "friend-1" }],
+        user: { id: "friend-1", name: "효타카토" },
+      },
     ]);
   });
 

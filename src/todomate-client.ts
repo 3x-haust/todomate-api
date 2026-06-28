@@ -18,7 +18,7 @@ import type {
   SetTodoDoneInput,
   UpdateTodoInput,
 } from "./schemas.ts";
-import type { TodomateApi, TodomateRecord } from "./todomate-api.ts";
+import type { TodomateApi, TodomateRecord, TodomateUserTodos } from "./todomate-api.ts";
 
 export type { TodomateApi, TodomateRecord } from "./todomate-api.ts";
 
@@ -101,6 +101,16 @@ export class TodomateClient implements TodomateApi {
 
   async userTodos(userId: string, date: number): Promise<readonly TodomateRecord[]> {
     return this.todosForWriter(userId, date);
+  }
+
+  async userTodosByName(name: string, date: number): Promise<readonly TodomateUserTodos[]> {
+    const users = await this.db.query("User", [{ fieldPath: "name", op: "EQUAL", value: name }]);
+    return Promise.all(
+      users.map(async (user) => ({
+        todos: await this.todosForWriter(String(user.id), date),
+        user,
+      })),
+    );
   }
 
   private async todosForWriter(writerId: string, date: number): Promise<readonly TodomateRecord[]> {

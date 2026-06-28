@@ -112,6 +112,15 @@ curl "$BASE_URL/users/USER_ID/todos?date=20260617" \
 
 This uses the current bearer session. It only returns records Todomate/Firebase allows that user to read.
 
+Find visible user todos by exact display name:
+
+```bash
+curl "$BASE_URL/users/by-name/%ED%9A%A8%ED%83%80%EC%B9%B4%ED%86%A0/todos?date=20260617" \
+  -H "authorization: Bearer SESSION_TOKEN"
+```
+
+The response is an array of `{ "user": ..., "todos": [...] }` groups because display names can be duplicated.
+
 Create a todo:
 
 ```bash

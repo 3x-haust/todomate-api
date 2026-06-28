@@ -112,6 +112,15 @@ curl "$BASE_URL/users/USER_ID/todos?date=20260617" \
 
 현재 bearer session 권한으로 요청합니다. Todomate/Firebase가 읽기를 허용하는 친구/공개 투두만 반환됩니다.
 
+정확한 표시 이름으로 보이는 사용자 투두 찾기:
+
+```bash
+curl "$BASE_URL/users/by-name/%ED%9A%A8%ED%83%80%EC%B9%B4%ED%86%A0/todos?date=20260617" \
+  -H "authorization: Bearer SESSION_TOKEN"
+```
+
+표시 이름은 중복될 수 있으므로 응답은 `{ "user": ..., "todos": [...] }` 그룹 배열입니다.
+
 투두 추가:
 
 ```bash

@@ -8,6 +8,10 @@ import type {
 } from "./schemas.ts";
 
 export type TodomateRecord = JsonObject;
+export type TodomateUserTodos = {
+  readonly todos: readonly TodomateRecord[];
+  readonly user: TodomateRecord;
+};
 
 export type TodomateApi = {
   readonly chatMessages: (
@@ -28,4 +32,5 @@ export type TodomateApi = {
   readonly updateReminder: (id: string, input: ReminderInput) => Promise<TodomateRecord>;
   readonly updateTodo: (id: string, input: UpdateTodoInput) => Promise<TodomateRecord>;
   readonly userTodos: (userId: string, date: number) => Promise<readonly TodomateRecord[]>;
+  readonly userTodosByName: (name: string, date: number) => Promise<readonly TodomateUserTodos[]>;
 };

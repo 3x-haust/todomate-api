@@ -67,6 +67,18 @@ export function createApp(options: CreateAppOptions = {}): Hono {
     return c.json(await (await server.getClient(c)).todos(parsed.data.date));
   });
 
+  app.get("/users/by-name/:name/todos", async (c): Promise<Response> => {
+    const parsed = z
+      .object({ date: yyyymmddSchema, name: z.string().min(1) })
+      .safeParse({ ...c.req.query(), name: c.req.param("name") });
+    if (!parsed.success) {
+      return validationError(c, parsed.error);
+    }
+    return c.json(
+      await (await server.getClient(c)).userTodosByName(parsed.data.name, parsed.data.date),
+    );
+  });
+
   app.get("/users/:userId/todos", async (c): Promise<Response> => {
     const parsed = z
       .object({ date: yyyymmddSchema, userId: z.string().min(1) })
