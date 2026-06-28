@@ -55,6 +55,11 @@ export function createApp(options: CreateAppOptions = {}): Hono {
   app.get("/me", async (c): Promise<Response> => c.json(await (await server.getClient(c)).me()));
 
   app.get(
+    "/friends",
+    async (c): Promise<Response> => c.json(await (await server.getClient(c)).friends()),
+  );
+
+  app.get(
     "/goals",
     async (c): Promise<Response> => c.json(await (await server.getClient(c)).goals()),
   );

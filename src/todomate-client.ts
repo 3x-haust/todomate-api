@@ -19,6 +19,12 @@ import type {
   UpdateTodoInput,
 } from "./schemas.ts";
 import type { TodomateApi, TodomateRecord, TodomateUserTodos } from "./todomate-api.ts";
+import {
+  readFriends,
+  readMe,
+  readTodosForWriter,
+  readUserTodosByName,
+} from "./todomate-readers.ts";
 
 export type { TodomateApi, TodomateRecord } from "./todomate-api.ts";
 
@@ -81,11 +87,12 @@ export class TodomateClient implements TodomateApi {
 
   async me(): Promise<TodomateRecord> {
     const uid = await this.auth.userId();
-    const [profile, userData] = await Promise.all([
-      this.db.getDocument(`User/${uid}`),
-      this.db.getDocument(`UserData/${uid}`),
-    ]);
-    return { ...profile, userData };
+    return readMe(this.db, uid);
+  }
+
+  async friends() {
+    const uid = await this.auth.userId();
+    return readFriends(this.db, uid);
   }
 
   async goals(): Promise<readonly TodomateRecord[]> {
@@ -96,29 +103,15 @@ export class TodomateClient implements TodomateApi {
 
   async todos(date: number): Promise<readonly TodomateRecord[]> {
     const uid = await this.auth.userId();
-    return this.todosForWriter(uid, date);
+    return readTodosForWriter(this.db, uid, date);
   }
 
   async userTodos(userId: string, date: number): Promise<readonly TodomateRecord[]> {
-    return this.todosForWriter(userId, date);
+    return readTodosForWriter(this.db, userId, date);
   }
 
   async userTodosByName(name: string, date: number): Promise<readonly TodomateUserTodos[]> {
-    const users = await this.db.query("User", [{ fieldPath: "name", op: "EQUAL", value: name }]);
-    return Promise.all(
-      users.map(async (user) => ({
-        todos: await this.todosForWriter(String(user.id), date),
-        user,
-      })),
-    );
-  }
-
-  private async todosForWriter(writerId: string, date: number): Promise<readonly TodomateRecord[]> {
-    const todos = await this.db.query("TodoItem", [
-      { fieldPath: "writerID", op: "EQUAL", value: writerId },
-      { fieldPath: "date", op: "EQUAL", value: yyyymmddToTodomateDate(date) },
-    ]);
-    return [...todos].sort(compareNumberField("createTime", "asc"));
+    return readUserTodosByName(this.db, name, date);
   }
 
   async createTodo(input: CreateTodoInput): Promise<TodomateRecord> {

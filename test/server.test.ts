@@ -20,6 +20,10 @@ const fakeClient: TodomateApi = {
   deleteReminder: async () => undefined,
   deleteTodo: async () => undefined,
   goals: async () => [{ id: "goal-1", priority: 1, title: "Inbox", userID: "uid-1" }],
+  friends: async () => ({
+    followers: [{ id: "follower-1", name: "Follower" }],
+    following: [{ id: "friend-1", name: "Friend" }],
+  }),
   me: async () => ({ id: "uid-1", name: "User" }),
   reminders: async () => [],
   sendChatMessage: async () => {
@@ -102,6 +106,18 @@ describe("HTTP API", () => {
     await expect(response.json()).resolves.toEqual([
       { date: 20260617, id: "friend-todo-1", writerID: "friend-1" },
     ]);
+  });
+
+  test("reads friends through the injected client", async () => {
+    const app = createApp({ client: fakeClient });
+
+    const response = await app.request("/friends");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      followers: [{ id: "follower-1", name: "Follower" }],
+      following: [{ id: "friend-1", name: "Friend" }],
+    });
   });
 
   test("reads visible user todos by name through the injected client", async () => {

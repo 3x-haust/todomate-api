@@ -8,6 +8,10 @@ import type {
 } from "./schemas.ts";
 
 export type TodomateRecord = JsonObject;
+export type TodomateFriends = {
+  readonly followers: readonly TodomateRecord[];
+  readonly following: readonly TodomateRecord[];
+};
 export type TodomateUserTodos = {
   readonly todos: readonly TodomateRecord[];
   readonly user: TodomateRecord;
@@ -23,6 +27,7 @@ export type TodomateApi = {
   readonly createTodo: (input: CreateTodoInput) => Promise<TodomateRecord>;
   readonly deleteReminder: (id: string) => Promise<void>;
   readonly deleteTodo: (id: string) => Promise<void>;
+  readonly friends: () => Promise<TodomateFriends>;
   readonly goals: () => Promise<readonly TodomateRecord[]>;
   readonly me: () => Promise<TodomateRecord>;
   readonly reminders: () => Promise<readonly TodomateRecord[]>;

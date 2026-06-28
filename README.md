@@ -83,6 +83,15 @@ curl "$BASE_URL/me" \
   -H "authorization: Bearer SESSION_TOKEN"
 ```
 
+### Friends
+
+```bash
+curl "$BASE_URL/friends" \
+  -H "authorization: Bearer SESSION_TOKEN"
+```
+
+Returns `{ "following": [...], "followers": [...] }` profiles for the current bearer session.
+
 ### Goals
 
 ```bash

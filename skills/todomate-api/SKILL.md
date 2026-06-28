@@ -28,6 +28,7 @@ If `TODOMATE_API_TOKEN` is missing, ask the user for an existing session token. 
 
 - `POST /auth/login` with `{ "email": "...", "password": "..." }`
 - `GET /me`
+- `GET /friends`
 - `GET /goals`
 - `GET /todos?date=YYYYMMDD`
 - `GET /users/:userId/todos?date=YYYYMMDD`

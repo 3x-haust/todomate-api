@@ -238,6 +238,54 @@ describe("TodomateClient", () => {
     expect(JSON.stringify(transport.requests[2]?.json)).toContain("1781654400000");
   });
 
+  test("reads friend profiles from following and follower ids", async () => {
+    const transport = createFakeTransport([
+      {
+        match: { method: "POST", urlIncludes: "accounts:signInWithPassword" },
+        body: {
+          localId: "uid-1",
+          idToken: "token-1",
+          refreshToken: "refresh-1",
+          expiresIn: "3600",
+        },
+      },
+      {
+        match: { method: "GET", urlIncludes: "/UserData/uid-1" },
+        body: {
+          name: "projects/mate-914f3/databases/(default)/documents/UserData/uid-1",
+          fields: {
+            followerIds: { arrayValue: { values: [{ stringValue: "follower-1" }] } },
+            followingIds: { arrayValue: { values: [{ stringValue: "friend-1" }] } },
+          },
+        },
+      },
+      {
+        match: { method: "GET", urlIncludes: "/User/friend-1" },
+        body: {
+          name: "projects/mate-914f3/databases/(default)/documents/User/friend-1",
+          fields: { id: { stringValue: "friend-1" }, name: { stringValue: "Friend" } },
+        },
+      },
+      {
+        match: { method: "GET", urlIncludes: "/User/follower-1" },
+        body: {
+          name: "projects/mate-914f3/databases/(default)/documents/User/follower-1",
+          fields: { id: { stringValue: "follower-1" }, name: { stringValue: "Follower" } },
+        },
+      },
+    ]);
+    const client = new TodomateClient({
+      credentials: { email: "user@example.com", password: "secret" },
+      firebaseApiKey: testFirebaseApiKey,
+      transport,
+    });
+
+    await expect(client.friends()).resolves.toEqual({
+      followers: [{ id: "follower-1", name: "Follower" }],
+      following: [{ id: "friend-1", name: "Friend" }],
+    });
+  });
+
   test("updates editable todo fields with Todomate date conversion", async () => {
     const transport = createFakeTransport([
       {

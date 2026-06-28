@@ -83,6 +83,15 @@ curl "$BASE_URL/me" \
   -H "authorization: Bearer SESSION_TOKEN"
 ```
 
+### 친구
+
+```bash
+curl "$BASE_URL/friends" \
+  -H "authorization: Bearer SESSION_TOKEN"
+```
+
+현재 bearer session 기준으로 `{ "following": [...], "followers": [...] }` 프로필을 반환합니다.
+
 ### 목표
 
 ```bash
