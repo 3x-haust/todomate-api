@@ -96,8 +96,16 @@ export class TodomateClient implements TodomateApi {
 
   async todos(date: number): Promise<readonly TodomateRecord[]> {
     const uid = await this.auth.userId();
+    return this.todosForWriter(uid, date);
+  }
+
+  async userTodos(userId: string, date: number): Promise<readonly TodomateRecord[]> {
+    return this.todosForWriter(userId, date);
+  }
+
+  private async todosForWriter(writerId: string, date: number): Promise<readonly TodomateRecord[]> {
     const todos = await this.db.query("TodoItem", [
-      { fieldPath: "writerID", op: "EQUAL", value: uid },
+      { fieldPath: "writerID", op: "EQUAL", value: writerId },
       { fieldPath: "date", op: "EQUAL", value: yyyymmddToTodomateDate(date) },
     ]);
     return [...todos].sort(compareNumberField("createTime", "asc"));

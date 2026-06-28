@@ -165,6 +165,34 @@ describe("TodomateClient", () => {
     expect(JSON.stringify(transport.requests.slice(1))).not.toContain("20260617");
   });
 
+  test("reads another visible user's todos with the current session", async () => {
+    const transport = createFakeTransport([
+      {
+        match: { method: "POST", urlIncludes: "accounts:signInWithPassword" },
+        body: {
+          localId: "uid-1",
+          idToken: "token-1",
+          refreshToken: "refresh-1",
+          expiresIn: "3600",
+        },
+      },
+      {
+        match: { method: "POST", urlIncludes: "/documents:runQuery" },
+        body: [],
+      },
+    ]);
+    const client = new TodomateClient({
+      credentials: { email: "user@example.com", password: "secret" },
+      firebaseApiKey: testFirebaseApiKey,
+      transport,
+    });
+
+    await expect(client.userTodos("friend-1", 20260617)).resolves.toEqual([]);
+
+    expect(JSON.stringify(transport.requests[1]?.json)).toContain("friend-1");
+    expect(JSON.stringify(transport.requests[1]?.json)).toContain("1781654400000");
+  });
+
   test("updates editable todo fields with Todomate date conversion", async () => {
     const transport = createFakeTransport([
       {

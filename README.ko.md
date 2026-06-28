@@ -103,6 +103,15 @@ curl "$BASE_URL/todos?date=20260617" \
   -H "authorization: Bearer SESSION_TOKEN"
 ```
 
+다른 보이는 사용자의 특정 날짜 투두 조회:
+
+```bash
+curl "$BASE_URL/users/USER_ID/todos?date=20260617" \
+  -H "authorization: Bearer SESSION_TOKEN"
+```
+
+현재 bearer session 권한으로 요청합니다. Todomate/Firebase가 읽기를 허용하는 친구/공개 투두만 반환됩니다.
+
 투두 추가:
 
 ```bash

@@ -27,4 +27,5 @@ export type TodomateApi = {
   readonly todos: (date: number) => Promise<readonly TodomateRecord[]>;
   readonly updateReminder: (id: string, input: ReminderInput) => Promise<TodomateRecord>;
   readonly updateTodo: (id: string, input: UpdateTodoInput) => Promise<TodomateRecord>;
+  readonly userTodos: (userId: string, date: number) => Promise<readonly TodomateRecord[]>;
 };

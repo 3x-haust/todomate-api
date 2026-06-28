@@ -35,6 +35,7 @@ const fakeClient: TodomateApi = {
     ...(input.goalId !== undefined ? { goalId: input.goalId } : {}),
     ...(input.remindAt !== undefined ? { remindAt: input.remindAt } : {}),
   }),
+  userTodos: async (userId, date) => [{ date, id: "friend-todo-1", writerID: userId }],
 };
 
 describe("HTTP API", () => {
@@ -84,6 +85,17 @@ describe("HTTP API", () => {
       date: 20260617,
       remindAt: null,
     });
+  });
+
+  test("reads visible user todos through the injected client", async () => {
+    const app = createApp({ client: fakeClient });
+
+    const response = await app.request("/users/friend-1/todos?date=20260617");
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual([
+      { date: 20260617, id: "friend-todo-1", writerID: "friend-1" },
+    ]);
   });
 
   test("keeps DM sending disabled unless explicitly enabled", async () => {

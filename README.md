@@ -103,6 +103,15 @@ curl "$BASE_URL/todos?date=20260617" \
   -H "authorization: Bearer SESSION_TOKEN"
 ```
 
+Read another visible user's todos for a date:
+
+```bash
+curl "$BASE_URL/users/USER_ID/todos?date=20260617" \
+  -H "authorization: Bearer SESSION_TOKEN"
+```
+
+This uses the current bearer session. It only returns records Todomate/Firebase allows that user to read.
+
 Create a todo:
 
 ```bash
