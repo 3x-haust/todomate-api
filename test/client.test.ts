@@ -165,6 +165,58 @@ describe("TodomateClient", () => {
     expect(JSON.stringify(transport.requests.slice(1))).not.toContain("20260617");
   });
 
+  test("updates editable todo fields with Todomate date conversion", async () => {
+    const transport = createFakeTransport([
+      {
+        match: { method: "POST", urlIncludes: "accounts:signInWithPassword" },
+        body: {
+          localId: "uid-1",
+          idToken: "token-1",
+          refreshToken: "refresh-1",
+          expiresIn: "3600",
+        },
+      },
+      {
+        match: { method: "PATCH", urlIncludes: "/TodoItem/todo-1" },
+        body: {
+          name: "projects/mate-914f3/databases/(default)/documents/TodoItem/todo-1",
+          fields: {
+            content: { stringValue: "edited" },
+            date: { integerValue: "1781654400000" },
+            goalID: { stringValue: "goal-2" },
+            remindAt: { nullValue: null },
+          },
+        },
+      },
+    ]);
+    const client = new TodomateClient({
+      credentials: { email: "user@example.com", password: "secret" },
+      firebaseApiKey: testFirebaseApiKey,
+      transport,
+    });
+
+    await expect(
+      client.updateTodo("todo-1", {
+        content: "edited",
+        date: 20260617,
+        goalId: "goal-2",
+        remindAt: null,
+      }),
+    ).resolves.toMatchObject({
+      content: "edited",
+      date: 1_781_654_400_000,
+      goalID: "goal-2",
+      remindAt: null,
+    });
+
+    const requestUrl = transport.requests[1]?.url ?? "";
+    expect(requestUrl).toContain("updateMask.fieldPaths=content");
+    expect(requestUrl).toContain("updateMask.fieldPaths=date");
+    expect(requestUrl).toContain("updateMask.fieldPaths=goalID");
+    expect(requestUrl).toContain("updateMask.fieldPaths=remindAt");
+    expect(JSON.stringify(transport.requests[1]?.json)).toContain("1781654400000");
+  });
+
   test("uses a stored Firebase refresh token without seeing the Todomate password again", async () => {
     const transport = createFakeTransport([
       {

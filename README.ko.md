@@ -112,6 +112,15 @@ curl -X POST "$BASE_URL/todos" \
   -d '{"content":"api로 추가한 투두","goalId":"GOAL_ID","date":20260617}'
 ```
 
+투두 내용, 목표, 날짜, 알람 수정:
+
+```bash
+curl -X PATCH "$BASE_URL/todos/TODO_ID" \
+  -H "authorization: Bearer SESSION_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"content":"수정한 투두","goalId":"GOAL_ID","date":20260617,"remindAt":null}'
+```
+
 투두 완료/미완료 처리:
 
 ```bash

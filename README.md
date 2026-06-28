@@ -112,6 +112,15 @@ curl -X POST "$BASE_URL/todos" \
   -d '{"content":"ship todomate api","goalId":"GOAL_ID","date":20260617}'
 ```
 
+Update todo content, goal, date, or reminder:
+
+```bash
+curl -X PATCH "$BASE_URL/todos/TODO_ID" \
+  -H "authorization: Bearer SESSION_TOKEN" \
+  -H "content-type: application/json" \
+  -d '{"content":"edited todo","goalId":"GOAL_ID","date":20260617,"remindAt":null}'
+```
+
 Complete or uncomplete a todo:
 
 ```bash

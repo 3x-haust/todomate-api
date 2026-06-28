@@ -4,6 +4,7 @@ import type {
   CreateTodoInput,
   ReminderInput,
   SetTodoDoneInput,
+  UpdateTodoInput,
 } from "./schemas.ts";
 
 export type TodomateRecord = JsonObject;
@@ -25,4 +26,5 @@ export type TodomateApi = {
   readonly setTodoDone: (id: string, input: SetTodoDoneInput) => Promise<TodomateRecord>;
   readonly todos: (date: number) => Promise<readonly TodomateRecord[]>;
   readonly updateReminder: (id: string, input: ReminderInput) => Promise<TodomateRecord>;
+  readonly updateTodo: (id: string, input: UpdateTodoInput) => Promise<TodomateRecord>;
 };

@@ -11,6 +11,7 @@ import {
   createTodoInputSchema,
   reminderInputSchema,
   setTodoDoneInputSchema,
+  updateTodoInputSchema,
   yyyymmddSchema,
 } from "./schemas.ts";
 import { registerAuthRoutes } from "./server/auth-routes.ts";
@@ -72,6 +73,14 @@ export function createApp(options: CreateAppOptions = {}): Hono {
       return validationError(c, parsed.error);
     }
     return c.json(await (await server.getClient(c)).createTodo(parsed.data), 201);
+  });
+
+  app.patch("/todos/:id", async (c): Promise<Response> => {
+    const parsed = updateTodoInputSchema.safeParse(await requestJson(c));
+    if (!parsed.success) {
+      return validationError(c, parsed.error);
+    }
+    return c.json(await (await server.getClient(c)).updateTodo(c.req.param("id"), parsed.data));
   });
 
   app.patch("/todos/:id/complete", async (c): Promise<Response> => {

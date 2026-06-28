@@ -16,6 +16,7 @@ import type {
   CreateTodoInput,
   ReminderInput,
   SetTodoDoneInput,
+  UpdateTodoInput,
 } from "./schemas.ts";
 import type { TodomateApi, TodomateRecord } from "./todomate-api.ts";
 
@@ -160,6 +161,24 @@ export class TodomateClient implements TodomateApi {
     }
 
     return this.db.patchDocument(`TodoItem/${id}`, { isDone: false }, ["isDone"]);
+  }
+
+  async updateTodo(id: string, input: UpdateTodoInput): Promise<TodomateRecord> {
+    return this.db.patchDocument(
+      `TodoItem/${id}`,
+      {
+        ...(input.content !== undefined ? { content: input.content } : {}),
+        ...(input.date !== undefined ? { date: yyyymmddToTodomateDate(input.date) } : {}),
+        ...(input.goalId !== undefined ? { goalID: input.goalId } : {}),
+        ...(input.remindAt !== undefined ? { remindAt: input.remindAt } : {}),
+      },
+      [
+        ...(input.content !== undefined ? ["content"] : []),
+        ...(input.date !== undefined ? ["date"] : []),
+        ...(input.goalId !== undefined ? ["goalID"] : []),
+        ...(input.remindAt !== undefined ? ["remindAt"] : []),
+      ],
+    );
   }
 
   async deleteTodo(id: string): Promise<void> {

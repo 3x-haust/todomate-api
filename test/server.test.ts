@@ -28,6 +28,13 @@ const fakeClient: TodomateApi = {
   setTodoDone: async (id, input) => ({ id, isDone: input.done, doneTime: 123 }),
   todos: async () => [],
   updateReminder: async (id, input) => ({ id, time: input.time }),
+  updateTodo: async (id, input) => ({
+    id,
+    ...(input.content !== undefined ? { content: input.content } : {}),
+    ...(input.date !== undefined ? { date: input.date } : {}),
+    ...(input.goalId !== undefined ? { goalId: input.goalId } : {}),
+    ...(input.remindAt !== undefined ? { remindAt: input.remindAt } : {}),
+  }),
 };
 
 describe("HTTP API", () => {
@@ -58,6 +65,24 @@ describe("HTTP API", () => {
       date: 20260617,
       goalId: "goal-1",
       isDone: false,
+    });
+  });
+
+  test("updates todos through the injected client", async () => {
+    const app = createApp({ client: fakeClient });
+
+    const response = await app.request("/todos/todo-1", {
+      body: JSON.stringify({ content: "edited", date: 20260617, remindAt: null }),
+      headers: { "content-type": "application/json" },
+      method: "PATCH",
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      id: "todo-1",
+      content: "edited",
+      date: 20260617,
+      remindAt: null,
     });
   });
 

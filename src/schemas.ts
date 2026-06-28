@@ -9,6 +9,17 @@ export const createTodoInputSchema = z.object({
   remindAt: z.number().int().nonnegative().nullable().optional(),
 });
 
+export const updateTodoInputSchema = z
+  .object({
+    content: z.string().min(1).optional(),
+    date: yyyymmddSchema.optional(),
+    goalId: z.string().min(1).optional(),
+    remindAt: z.number().int().nonnegative().nullable().optional(),
+  })
+  .refine((input) => Object.values(input).some((value) => value !== undefined), {
+    message: "At least one todo field is required",
+  });
+
 export const setTodoDoneInputSchema = z.object({
   done: z.boolean().default(true),
   spentTime: z.number().int().nonnegative().nullable().optional(),
@@ -36,3 +47,4 @@ export type CreateTodoInput = z.infer<typeof createTodoInputSchema>;
 export type LoginInput = z.infer<typeof loginInputSchema>;
 export type ReminderInput = z.infer<typeof reminderInputSchema>;
 export type SetTodoDoneInput = z.infer<typeof setTodoDoneInputSchema>;
+export type UpdateTodoInput = z.infer<typeof updateTodoInputSchema>;
