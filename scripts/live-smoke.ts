@@ -3,7 +3,7 @@ import { z } from "zod";
 import { runtimeEnv } from "../src/runtime-env.ts";
 
 const envSchema = z.object({
-  TODOMATE_API_BASE_URL: z.url().default("https://todomate-api.3xhaust.dev"),
+  TODOMATE_API_BASE_URL: z.url().default("http://localhost:3000"),
   TODOMATE_API_TOKEN: z.string().min(1),
   TODOMATE_SMOKE_GOAL_ID: z.string().min(1).optional(),
 });

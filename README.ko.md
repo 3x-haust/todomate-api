@@ -2,275 +2,199 @@
 
 한국어 | [English](README.md)
 
-[Todomate](https://www.todomate.net/)용 비공식 hosted HTTP API입니다.
+[Todomate](https://www.todomate.net/)용 비공식 로컬 CLI와 선택 사항인 HTTP API입니다.
 
-공개 API base URL:
-
-```bash
-https://todomate-api.3xhaust.dev
-```
-
-이 프로젝트는 API-only입니다. 로컬 단일 계정 모드는 없고, 서버는 env에서 `TODOMATE_EMAIL`이나 `TODOMATE_PASSWORD`를 읽지 않습니다. 각 사용자는 `POST /auth/login`으로 로그인해서 이 API의 bearer token을 받고, 그 token으로 투두/알람/채팅 조회 API를 호출합니다.
-
-서버는 Todomate 비밀번호를 저장하지 않습니다. 로그인 때 Firebase와 한 번 교환한 뒤, Firebase refresh token만 `SESSION_ENCRYPTION_KEY`로 암호화한 bearer session token 안에 넣습니다.
+이 프로젝트의 기본 사용 방식은 로컬 CLI입니다. CLI가 Todomate Firebase 서비스에 직접 연결하므로 일반적인 CLI 사용에는 hosted API, `SESSION_ENCRYPTION_KEY`, 로컬 서버가 필요하지 않습니다.
 
 ## 상태
 
 구현된 기능:
 
-- `/auth/login`을 통한 Firebase 이메일/비밀번호 로그인
-- 공개 멀티 유저 사용을 위한 암호화 bearer session token
-- 내 프로필 조회
-- 목표 목록 조회
-- 투두 조회, 추가, 완료/미완료 처리, 삭제
+- Firebase 이메일/비밀번호 로그인
+- 로컬 session 저장
+- 내 프로필, 친구, 목표 조회
+- 투두 조회, 추가, 수정, 완료/미완료 처리, 삭제
 - 알람 조회, 추가, 수정, 삭제
-- 채팅방/메시지 조회
-- DM 전송 엔드포인트는 `TODOMATE_ENABLE_SOCIAL_WRITES=true`일 때만 활성화
+- 채팅방과 메시지 조회
+- `TODOMATE_ENABLE_SOCIAL_WRITES=true`일 때 DM 전송
+- 암호화된 bearer session을 사용하는 선택 사항 멀티 유저 HTTP API
 
 알려진 제한:
 
-- 비공식 API라 Todomate가 웹 앱이나 Firestore 규칙을 바꾸면 깨질 수 있습니다.
+- 비공식 프로젝트라 Todomate가 웹 앱이나 Firestore 규칙을 바꾸면 깨질 수 있습니다.
 - DM 전송은 다른 사용자에게 영향을 주므로 기본값은 비활성화입니다.
-- 크루 관리, 좋아요, AI 투두 생성, 다이어리, access-token 함수 등은 아직 발견/문서화 단계입니다.
+- 크루 관리, 좋아요, AI 투두 생성, 다이어리, access-token 함수 등은 아직 발견 단계입니다.
 
-## 빠른 시작
+## 로컬 CLI 빠른 시작
 
-```bash
-BASE_URL="https://todomate-api.3xhaust.dev"
-
-curl -X POST "$BASE_URL/auth/login" \
-  -H "content-type: application/json" \
-  -d '{"email":"you@example.com","password":"your-password"}'
-```
-
-응답:
-
-```json
-{
-  "tokenType": "Bearer",
-  "token": "SESSION_TOKEN",
-  "uid": "TODOMATE_UID",
-  "expiresAt": 1800000000000
-}
-```
-
-token 사용:
+의존성을 설치한 뒤 로그인합니다:
 
 ```bash
-curl "$BASE_URL/goals" \
-  -H "authorization: Bearer SESSION_TOKEN"
+git clone https://github.com/3x-haust/todomate-api.git
+cd todomate-api
+bun install
+bun run cli login
 ```
 
-logout은 stateless입니다. 클라이언트에서 token을 삭제하면 됩니다:
+대화형 프롬프트는 비밀번호를 화면에 표시하지 않습니다. 비대화형 환경에서는 stdin으로 JSON credentials를 전달할 수 있습니다. 실제 credentials를 shell history나 문서에 넣지 마세요:
 
 ```bash
-curl -X POST "$BASE_URL/auth/logout" \
-  -H "authorization: Bearer SESSION_TOKEN"
+printf '%s' '{"email":"user@example.com","password":"example-only"}' | bun run cli login
 ```
 
-## API
+로그인할 때 Todomate hosting에서 공개 Firebase web 설정을 자동으로 찾습니다. 자동 탐색을 덮어써야 할 때만 `TODOMATE_FIREBASE_API_KEY`를 설정하세요.
 
-### Health
+각 기기와 사용자는 직접 `login`해야 합니다. 선택 사항인 HTTP API가 발급한 bearer token은 형식이 다른 session이므로 CLI에서 재사용할 수 없습니다.
+
+### Session 저장
+
+CLI는 Firebase refresh token을 전용 로컬 config 디렉터리에 plaintext JSON으로 저장합니다:
+
+- 기본 디렉터리: `~/.config/todomate`
+- session 파일: `~/.config/todomate/session.json`
+- 디렉터리 권한: POSIX `0700`
+- 파일 권한: POSIX `0600`
+
+다른 디렉터리를 사용하려면 `TODOMATE_CONFIG_DIR`을 설정하세요. 비밀번호는 로그인할 때만 사용하고 저장하지 않습니다. refresh token은 연결된 Todomate 계정에 접근할 수 있으므로 session 파일을 보호해야 합니다.
+
+Logout은 로컬 session 파일만 삭제합니다. Firebase token을 원격으로 revoke하지 않습니다:
 
 ```bash
-curl "$BASE_URL/health"
+bun run cli logout
 ```
 
-### 계정
+### 명령
+
+도움말을 제외한 명령 결과는 구조화된 JSON입니다. 실패 시 stderr에 JSON error를 출력하고 exit status `1`로 종료합니다.
+
+```text
+bun run cli --help
+bun run cli login
+bun run cli logout
+
+bun run cli me
+bun run cli friends
+bun run cli goals
+
+bun run cli todos YYYYMMDD
+bun run cli user-todos USER_ID YYYYMMDD
+bun run cli user-todos-by-name NAME YYYYMMDD
+
+bun run cli todo-create '{"content":"문서 배포","goalId":"GOAL_ID","date":20261110}'
+bun run cli todo-update TODO_ID '{"content":"문서 수정","date":20261110}'
+bun run cli todo-complete TODO_ID
+bun run cli todo-complete TODO_ID '{"done":false}'
+bun run cli todo-delete TODO_ID
+
+bun run cli reminders
+bun run cli reminder-create '{"time":1800000000000}'
+bun run cli reminder-update REMINDER_ID '{"time":1800003600000}'
+bun run cli reminder-delete REMINDER_ID
+
+bun run cli chat-rooms
+bun run cli chat-messages ROOM_ID
+bun run cli chat-messages ROOM_ID 100
+TODOMATE_ENABLE_SOCIAL_WRITES=true bun run cli chat-send ROOM_ID '{"content":"안녕"}'
+```
+
+투두 날짜는 `YYYYMMDD` 형식입니다. 투두를 만들기 전에 `goals`를 실행하고 반환된 `id`를 `goalId`로 사용하세요. 채팅 메시지 limit 범위는 1부터 200까지입니다.
+
+### 선택 사항인 전역 명령
+
+패키지는 `dist/cli.js`를 `todomate` binary로 정의합니다. 이 checkout을 build하고 link하면 전역 명령으로 사용할 수 있습니다:
 
 ```bash
-curl "$BASE_URL/me" \
-  -H "authorization: Bearer SESSION_TOKEN"
+bun run build
+npm link
+todomate --help
+todomate login
 ```
 
-### 친구
-
-```bash
-curl "$BASE_URL/friends" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-현재 bearer session 기준으로 `{ "following": [...], "followers": [...] }` 프로필을 반환합니다.
-
-### 목표
-
-```bash
-curl "$BASE_URL/goals" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-응답에 포함된 목표 `id`를 투두 생성 시 `goalId`로 사용합니다.
-
-### 투두
-
-투두 요청의 날짜는 `YYYYMMDD`를 사용합니다. API는 이를 Todomate 내부 형식인 UTC 자정 epoch millisecond date 필드로 변환합니다. 그래서 응답 레코드의 `date`에는 `1781654400000` 같은 값이 들어 있을 수 있습니다.
-
-특정 날짜의 투두 조회:
-
-```bash
-curl "$BASE_URL/todos?date=20260617" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-다른 보이는 사용자의 특정 날짜 투두 조회:
-
-```bash
-curl "$BASE_URL/users/USER_ID/todos?date=20260617" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-현재 bearer session 권한으로 요청합니다. Todomate/Firebase가 읽기를 허용하는 친구/공개 투두만 반환됩니다.
-
-정확한 표시 이름으로 보이는 사용자 투두 찾기:
-
-```bash
-curl "$BASE_URL/users/by-name/%ED%9A%A8%ED%83%80%EC%B9%B4%ED%86%A0/todos?date=20260617" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-표시 이름은 중복될 수 있으므로 응답은 `{ "user": ..., "todos": [...] }` 그룹 배열입니다.
-
-투두 추가:
-
-```bash
-curl -X POST "$BASE_URL/todos" \
-  -H "authorization: Bearer SESSION_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"content":"api로 추가한 투두","goalId":"GOAL_ID","date":20260617}'
-```
-
-투두 내용, 목표, 날짜, 알람 수정:
-
-```bash
-curl -X PATCH "$BASE_URL/todos/TODO_ID" \
-  -H "authorization: Bearer SESSION_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"content":"수정한 투두","goalId":"GOAL_ID","date":20260617,"remindAt":null}'
-```
-
-투두 완료/미완료 처리:
-
-```bash
-curl -X PATCH "$BASE_URL/todos/TODO_ID/complete" \
-  -H "authorization: Bearer SESSION_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"done":true}'
-```
-
-투두 삭제:
-
-```bash
-curl -X DELETE "$BASE_URL/todos/TODO_ID" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-### 알람
-
-```bash
-curl "$BASE_URL/reminders" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-추가:
-
-```bash
-curl -X POST "$BASE_URL/reminders" \
-  -H "authorization: Bearer SESSION_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"time":1800000000000}'
-```
-
-수정:
-
-```bash
-curl -X PATCH "$BASE_URL/reminders/REMINDER_ID" \
-  -H "authorization: Bearer SESSION_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"time":1800003600000}'
-```
-
-삭제:
-
-```bash
-curl -X DELETE "$BASE_URL/reminders/REMINDER_ID" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-### 채팅 / DM
-
-채팅방 조회:
-
-```bash
-curl "$BASE_URL/chat/rooms" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-메시지 조회:
-
-```bash
-curl "$BASE_URL/chat/rooms/ROOM_ID/messages?limit=50" \
-  -H "authorization: Bearer SESSION_TOKEN"
-```
-
-메시지 전송. 배포 환경에서 social write를 명시적으로 켠 경우에만 동작합니다:
-
-```bash
-curl -X POST "$BASE_URL/chat/rooms/ROOM_ID/messages" \
-  -H "authorization: Bearer SESSION_TOKEN" \
-  -H "content-type: application/json" \
-  -d '{"content":"안녕"}'
-```
+이 방법은 로컬 link workflow이며 npm에 package가 배포되었다는 뜻이 아닙니다.
 
 ## AI Skill
 
-API-only Codex skill 예시는 `skills/todomate-api/SKILL.md`에 있습니다.
-
-Codex에 설치:
+로컬 CLI skill은 `skills/todomate-api/SKILL.md`에 있습니다.
 
 ```bash
 mkdir -p ~/.codex/skills/todomate-api
 cp skills/todomate-api/SKILL.md ~/.codex/skills/todomate-api/SKILL.md
 ```
 
-agent용 권장 env:
+Agent는 hosted URL 대신 로컬 `todomate` 명령을 사용해야 합니다. 각 사용자가 자신의 기기와 계정에서 로그인을 완료해야 합니다. Agent는 `session.json`, refresh token, 비밀번호 등 secret session 내용을 출력하거나 읽으면 안 됩니다.
 
-```bash
-export TODOMATE_API_BASE_URL="https://todomate-api.3xhaust.dev"
-export TODOMATE_API_TOKEN="SESSION_TOKEN"
+## 선택 사항인 HTTP Server API
+
+멀티 유저 bearer-token API가 필요한 배포 환경에서는 HTTP server를 계속 사용할 수 있습니다. 로컬 CLI에는 필요하지 않습니다.
+
+HTTP API가 필요하면 직접 인스턴스를 실행하세요. 예시는 로컬 서버를 사용합니다:
+
+```text
+http://localhost:3000
 ```
 
-agent는 일반 작업에 bearer token을 사용하고, 로그인 이후 Todomate 비밀번호를 다시 묻거나 저장하지 않아야 합니다.
+Server login은 Todomate 이메일/비밀번호를 한 번 받아 Firebase와 교환한 뒤, 이 API 전용 암호화 bearer session token을 반환합니다. Server는 비밀번호를 저장하지 않습니다. 이 bearer token은 로컬 CLI로 가져올 수 없습니다.
 
-## 개발
-
-API 서버 자체를 개발하려는 경우:
+### Server 실행
 
 ```bash
-git clone https://github.com/3x-haust/todomate-api.git
-cd todomate-api
-bun install
 cp .env.example .env
-```
-
-session key 설정:
-
-```bash
-SESSION_ENCRYPTION_KEY="$(openssl rand -hex 32)"
-```
-
-Firebase Auth REST endpoint에 사용할 Todomate Firebase web API key 설정:
-
-```bash
-TODOMATE_FIREBASE_API_KEY="..."
-```
-
-API 실행:
-
-```bash
+export SESSION_ENCRYPTION_KEY="$(openssl rand -hex 32)"
+export TODOMATE_FIREBASE_API_KEY="<Todomate Firebase web API key>"
 bun run dev
 ```
 
-개발 서버도 production과 같은 API login flow를 사용합니다.
+Hosted mode 설정:
+
+```bash
+TODOMATE_FIREBASE_API_KEY="<필수 Todomate Firebase web API key>"
+SESSION_ENCRYPTION_KEY="<openssl rand -hex 32로 생성한 64자 hex 문자열>"
+SESSION_TTL_DAYS="30"
+CORS_ORIGIN="*"
+TODOMATE_ENABLE_SOCIAL_WRITES="false"
+TODOMATE_PORT="3000"
+```
+
+HTTP 서버에는 두 키가 모두 필요하며 Firebase 키 자동 탐색은 지원하지 않습니다. 로컬 CLI에는 두 환경변수 모두 필요하지 않습니다. Firebase web API key는 Firebase admin secret이 아니라 공개 client 설정입니다.
+
+### HTTP 예시
+
+```bash
+BASE_URL="http://localhost:3000"
+
+curl -X POST "$BASE_URL/auth/login" \
+  -H "content-type: application/json" \
+  -d '{"email":"user@example.com","password":"example-only"}'
+
+curl "$BASE_URL/me" -H "authorization: Bearer SESSION_TOKEN"
+curl "$BASE_URL/friends" -H "authorization: Bearer SESSION_TOKEN"
+curl "$BASE_URL/goals" -H "authorization: Bearer SESSION_TOKEN"
+curl "$BASE_URL/todos?date=20261110" -H "authorization: Bearer SESSION_TOKEN"
+curl "$BASE_URL/reminders" -H "authorization: Bearer SESSION_TOKEN"
+curl "$BASE_URL/chat/rooms" -H "authorization: Bearer SESSION_TOKEN"
+```
+
+사용 가능한 protected route:
+
+- `GET /me`
+- `GET /friends`
+- `GET /goals`
+- `GET /todos?date=YYYYMMDD`
+- `GET /users/:userId/todos?date=YYYYMMDD`
+- `GET /users/by-name/:name/todos?date=YYYYMMDD`
+- `POST /todos`
+- `PATCH /todos/:id`
+- `PATCH /todos/:id/complete`
+- `DELETE /todos/:id`
+- `GET /reminders`
+- `POST /reminders`
+- `PATCH /reminders/:id`
+- `DELETE /reminders/:id`
+- `GET /chat/rooms`
+- `GET /chat/rooms/:roomId/messages?limit=50`
+- `POST /chat/rooms/:roomId/messages`, social write가 활성화된 경우에만 사용
+
+`GET /health`, `POST /auth/login`, `POST /auth/logout`도 사용할 수 있습니다. HTTP logout은 stateless이므로 client에서 bearer token을 버려야 합니다.
 
 ## 검증
 
@@ -280,7 +204,7 @@ bun run typecheck
 bun run lint
 ```
 
-선택 사항인 live API smoke test입니다. bearer token이 필요하고, HTTP API로 투두 하나를 만들고 완료 처리한 뒤 삭제합니다:
+선택 사항인 live smoke test는 HTTP API bearer token을 사용합니다. 투두 하나를 만들고 완료 처리한 뒤 삭제합니다:
 
 ```bash
 TODOMATE_API_TOKEN="SESSION_TOKEN" bun run smoke:live
@@ -288,29 +212,16 @@ TODOMATE_API_TOKEN="SESSION_TOKEN" bun run smoke:live
 
 ## 배포
 
-이 repo는 `Dockerfile`과 얇은 NestJS production entrypoint를 포함합니다. 그래서 Node/Nest 배포 플랫폼이 프로젝트를 감지해서 실행할 수 있고, 실제 API 로직은 그대로 Hono 앱에 있습니다.
+Repository에는 `Dockerfile`과 얇은 NestJS production entrypoint가 있습니다. API 로직은 Hono app에 유지됩니다.
 
-운영 환경 필수 env:
-
-```bash
-TODOMATE_FIREBASE_API_KEY="<Todomate Firebase web API key>"
-SESSION_ENCRYPTION_KEY="<openssl rand -hex 32로 생성한 64자 hex 문자열>"
-SESSION_TTL_DAYS="30"
-CORS_ORIGIN="*"
-TODOMATE_ENABLE_SOCIAL_WRITES="false"
-TODOMATE_PORT="3000"
-```
-
-Firebase web API key는 Firebase admin secret이 아니라 웹 앱 공개 client 설정입니다. 그래도 public repo에 박아두면 secret scanning이 계속 울리므로 env로만 주입합니다.
-
-`@3xhaust/deploy-cli`로 배포:
+배포 예시:
 
 ```bash
 deploy projects create \
   --repo 3x-haust/todomate-api \
   --name todomate-api \
   --branch main \
-  --domain todomate-api.3xhaust.dev \
+  --domain api.example.com \
   --env TODOMATE_FIREBASE_API_KEY="$TODOMATE_FIREBASE_API_KEY" \
   --env SESSION_ENCRYPTION_KEY="$(openssl rand -hex 32)" \
   --env SESSION_TTL_DAYS=30 \
@@ -321,9 +232,9 @@ deploy projects create \
 
 ## 안전 주의사항
 
-- Todomate 이메일/비밀번호를 매 API 호출마다 보내지 마세요. `/auth/login`을 한 번 호출한 뒤 bearer token을 사용하세요.
-- session token은 비공개로 유지하세요. 만료 전까지 연결된 Todomate 계정에 쓰기 작업을 할 수 있습니다.
-- 공개 배포에서는 HTTPS와 강한 `SESSION_ENCRYPTION_KEY`를 사용하세요.
-- 이 공개 API는 브라우저와 서버 클라이언트 모두 호출할 수 있게 `CORS_ORIGIN="*"`를 쓰며, 특정 브라우저 앱을 운영하게 되면 그 프론트엔드 origin으로 좁히세요.
-- 모든 쓰기 엔드포인트는 실제 Todomate 계정에 반영되는 작업으로 취급하세요.
-- Firebase API key는 Todomate 웹 앱의 공개 client 설정이며 서버 비밀키가 아니지만, source tree에는 저장하지 마세요.
+- 모든 write는 연결된 Todomate 계정에 적용되는 production 변경으로 취급하세요.
+- 로컬 refresh token과 hosted bearer token을 비공개로 유지하세요.
+- 요청마다 비밀번호를 보내지 마세요. 한 번 로그인한 뒤 만들어진 로컬 또는 hosted session을 사용하세요.
+- 공개 HTTP 배포에서는 HTTPS와 강한 `SESSION_ENCRYPTION_KEY`를 사용하세요.
+- 특정 browser app을 위한 배포라면 `CORS_ORIGIN`을 해당 origin으로 좁히세요.
+- Firebase API key는 공개 web client 설정이지만 source에 저장할 필요는 없습니다.

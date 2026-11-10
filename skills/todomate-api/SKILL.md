@@ -1,50 +1,63 @@
 ---
 name: todomate-api
-description: Use the hosted Todomate unofficial HTTP API to read/create/complete todos, manage reminders, and read chat through bearer-token auth. Trigger when the user asks an AI agent to operate Todomate through todomate-api or the hosted todomate-api. API-only: do not use local single-account env credentials.
+description: Use the local Todomate CLI to read and manage todos, reminders, friends, goals, and chat. Trigger when the user asks an AI agent to operate Todomate through this project.
 ---
 
-# Todomate API
+# Todomate Local CLI
 
-Use the hosted HTTP API only. Do not read `TODOMATE_EMAIL` or `TODOMATE_PASSWORD` from env, and do not create a local Todomate client.
+Use the local `todomate` command. Don't call a hosted API URL for normal agent work.
 
-## Configuration
+## Setup
 
-Read:
+The user must install and log in on each device and account:
 
-- `TODOMATE_API_BASE_URL`, default `https://todomate-api.3xhaust.dev`
-- `TODOMATE_API_TOKEN`, bearer session token from `/auth/login`
+```bash
+bun install
+bun run build
+npm link
+todomate login
+```
 
-If `TODOMATE_API_TOKEN` is missing, ask the user for an existing session token. If the user explicitly wants to log in, call `/auth/login` once with the provided Todomate email/password, then use only the returned bearer token.
+The password prompt is hidden. The CLI stores a Firebase refresh token in `~/.config/todomate/session.json`, or under `TODOMATE_CONFIG_DIR` when set. The password isn't stored.
+
+Don't ask for, print, read, copy, summarize, or expose the session file, password, refresh token, or any secret session content. Don't use shell commands to inspect the config directory. If login is required, ask the user to run `todomate login` themselves.
+
+An optional HTTP API bearer token can't be reused by the CLI. Each device and user needs its own CLI login.
 
 ## Workflow
 
-1. Check `GET /health`.
-2. For protected routes, send `Authorization: Bearer <TODOMATE_API_TOKEN>`.
-3. To create a todo, call `GET /goals` first and use one returned `id` as `goalId`.
-4. Use exact date integers in `YYYYMMDD` format for dated todos.
-5. Treat todo, reminder, and DM writes as real production writes. Confirm user intent for destructive deletes or social writes.
+1. Run `todomate --help` if command syntax must be checked.
+2. Use `todomate goals` before creating a todo, then use a returned `id` as `goalId`.
+3. Use exact `YYYYMMDD` dates.
+4. Parse stdout as structured JSON.
+5. Treat exit status `1` and the JSON error on stderr as failure.
+6. Confirm user intent before destructive deletes or social writes.
 
-## Endpoints
+## Commands
 
-- `POST /auth/login` with `{ "email": "...", "password": "..." }`
-- `GET /me`
-- `GET /friends`
-- `GET /goals`
-- `GET /todos?date=YYYYMMDD`
-- `GET /users/:userId/todos?date=YYYYMMDD`
-- `GET /users/by-name/:name/todos?date=YYYYMMDD`
-- `POST /todos`
-- `PATCH /todos/:id`
-- `PATCH /todos/:id/complete`
-- `DELETE /todos/:id`
-- `GET /reminders`
-- `POST /reminders`
-- `PATCH /reminders/:id`
-- `DELETE /reminders/:id`
-- `GET /chat/rooms`
-- `GET /chat/rooms/:roomId/messages?limit=50`
-- `POST /chat/rooms/:roomId/messages` only when social writes are enabled
+- `todomate me`
+- `todomate friends`
+- `todomate goals`
+- `todomate todos YYYYMMDD`
+- `todomate user-todos USER_ID YYYYMMDD`
+- `todomate user-todos-by-name NAME YYYYMMDD`
+- `todomate todo-create '{"content":"...","goalId":"...","date":20261110}'`
+- `todomate todo-update TODO_ID '{"content":"...","date":20261110}'`
+- `todomate todo-complete TODO_ID`
+- `todomate todo-complete TODO_ID '{"done":false}'`
+- `todomate todo-delete TODO_ID`
+- `todomate reminders`
+- `todomate reminder-create '{"time":1800000000000}'`
+- `todomate reminder-update REMINDER_ID '{"time":1800003600000}'`
+- `todomate reminder-delete REMINDER_ID`
+- `todomate chat-rooms`
+- `todomate chat-messages ROOM_ID`
+- `todomate chat-messages ROOM_ID LIMIT`
+- `TODOMATE_ENABLE_SOCIAL_WRITES=true todomate chat-send ROOM_ID '{"content":"..."}'`
+- `todomate logout`
+
+`logout` deletes only the local session file. It doesn't remotely revoke Firebase tokens.
 
 ## Safety
 
-Never print session tokens, passwords, refresh tokens, or full Authorization headers. Summarize success using record ids and counts.
+Report success with record IDs, counts, and non-secret fields. Never include credentials, tokens, full session objects, or config file contents in output.
